@@ -12,8 +12,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "FitSquad — 健身打卡与社交",
+  title: "FitSquad",
   description: "组团健身、记录训练、挑战排行榜",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "FitSquad",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({
@@ -23,12 +29,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
+      <head>
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#22c55e" />
+      </head>
       <body className="min-h-screen bg-surface-50">
         <SessionProvider>
           <Navbar />
           <main className="pb-16">{children}</main>
           <Toaster position="top-center" richColors />
         </SessionProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js');
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

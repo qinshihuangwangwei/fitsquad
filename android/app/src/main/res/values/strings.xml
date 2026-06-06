@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FitSquad</string>
+    <string name="title_activity_main">FitSquad</string>
+    <string name="package_name">com.fitsquad.app</string>
+    <string name="custom_url_scheme">com.fitsquad.app</string>
+</resources>

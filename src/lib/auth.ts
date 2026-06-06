@@ -1,7 +1,12 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+
+// 懒加载 prisma，避免模块初始化时连接数据库失败导致整个应用崩溃
+async function getPrisma() {
+  const { prisma } = await import("@/lib/prisma");
+  return prisma;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -19,6 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = (credentials.email as string).toLowerCase().trim();
         const password = credentials.password as string;
 
+        const prisma = await getPrisma();
         const user = await prisma.user.findUnique({
           where: { email },
         });
@@ -45,16 +51,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 天
+    maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
       }
-      // 刷新时从数据库同步头像
       if (trigger === "update" || !token.picture) {
         try {
+          const prisma = await getPrisma();
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
             select: { avatar: true },
