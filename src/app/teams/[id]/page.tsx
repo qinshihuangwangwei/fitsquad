@@ -45,8 +45,9 @@ export default async function TeamDetailPage({
 
   if (!team) notFound();
 
-  const isCaptain = team.captainId === session.user.id;
-  const isMember = team.members.some((m) => m.userId === session.user.id);
+  const userId = session.user!.id;
+  const isCaptain = team.captainId === userId;
+  const isMember = team.members.some((m) => m.userId === userId);
   if (!isMember) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
