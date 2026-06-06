@@ -11,7 +11,7 @@ export default async function ProfilePage() {
 
   let user: {
     id: string; name: string; email: string; avatar: string | null;
-    bio: string | null; bodyWeight: number | null; createdAt: string;
+    bio: string | null; bodyWeight: number | null; createdAt: Date;
   } | null = null;
   try {
     user = await prisma.user.findUnique({
