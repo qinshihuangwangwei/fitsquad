@@ -78,6 +78,7 @@ export const createPlanSchema = z.object({
 // ─── 开始训练 ───
 export const startSessionSchema = z.object({
   planId: z.string().optional(),
+  dayId: z.string().optional(), // 只练某一天
   teamId: z.string().optional(),
   exercises: z
     .array(

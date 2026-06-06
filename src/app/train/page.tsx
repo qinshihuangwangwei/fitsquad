@@ -8,13 +8,14 @@ import { StartTrainingButton } from "./start-button";
 export default async function TrainPage({
   searchParams: searchParamsPromise,
 }: {
-  searchParams: Promise<{ planId?: string }>;
+  searchParams: Promise<{ planId?: string; dayId?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
   const searchParams = await searchParamsPromise;
   const planId = searchParams.planId;
+  const dayId = searchParams.dayId;
 
   // 检查是否有活跃训练
   const activeSession = await prisma.workoutSession.findFirst({
@@ -114,7 +115,7 @@ export default async function TrainPage({
             {plan.name} · {plan.days.length} 个训练日 ·{" "}
             {plan.days.reduce((s, d) => s + d.exercises.length, 0)} 个动作
           </p>
-          <StartTrainingButton planId={plan.id} />
+          <StartTrainingButton planId={plan.id} dayId={dayId} />
         </div>
       )}
 

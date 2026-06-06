@@ -4,10 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Play } from "lucide-react";
 
-export function StartTrainingButton({ planId }: { planId: string }) {
+export function StartTrainingButton({ planId, dayId }: { planId: string; dayId?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [teamId, setTeamId] = useState("");
 
   const handleStart = async () => {
     setLoading(true);
@@ -16,7 +15,7 @@ export function StartTrainingButton({ planId }: { planId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         planId,
-        teamId: teamId || undefined,
+        dayId: dayId || undefined,
       }),
     });
 

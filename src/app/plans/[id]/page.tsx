@@ -69,13 +69,6 @@ export default async function PlanDetailPage({
             </div>
           </div>
           <div className="flex gap-2">
-            <Link
-              href={`/train?planId=${plan.id}`}
-              className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
-            >
-              <Play className="h-4 w-4" />
-              开始训练
-            </Link>
             {isOwner && !plan.isTemplate && (
               <DeletePlanButton planId={plan.id} />
             )}
@@ -90,11 +83,18 @@ export default async function PlanDetailPage({
             key={day.id}
             className="rounded-xl border border-surface-200 bg-white shadow-sm overflow-hidden"
           >
-            <div className="bg-surface-50 px-5 py-3 border-b border-surface-100">
+            <div className="bg-surface-50 px-5 py-3 border-b border-surface-100 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-base font-semibold text-surface-900">
                 <Dumbbell className="h-4 w-4 text-brand-500" />
                 {day.dayName}
               </h2>
+              <Link
+                href={`/train?planId=${plan.id}&dayId=${day.id}`}
+                className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
+              >
+                <Play className="h-3.5 w-3.5" />
+                练这天
+              </Link>
             </div>
             <div className="divide-y divide-surface-100">
               {day.exercises.length === 0 ? (

@@ -4,6 +4,7 @@ const nextConfig = {
     domains: [],
   },
   serverExternalPackages: ["bcryptjs"],
+  allowedDevOrigins: ["10.71.24.30", "localhost"],
 };
 
 module.exports = nextConfig;

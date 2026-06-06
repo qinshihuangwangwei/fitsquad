@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { planId, teamId, exercises } = parsed.data;
+  const { planId, dayId, teamId, exercises } = parsed.data;
 
   // 检查是否有活跃的训练
   const activeSession = await prisma.workoutSession.findFirst({
@@ -65,7 +65,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "计划不存在" }, { status: 404 });
     }
 
-    for (const day of plan.days) {
+    // 如果指定了 dayId，只加载该天的动作
+    const daysToTrain = dayId
+      ? plan.days.filter((d) => d.id === dayId)
+      : plan.days;
+
+    for (const day of daysToTrain) {
       for (const pe of day.exercises) {
         allExercises.push({
           exerciseId: pe.exerciseId,
@@ -74,10 +79,13 @@ export async function POST(req: Request) {
           reps: pe.reps,
           weight: pe.weight,
           restTime: pe.restTime,
-          // 传递 PlanSet 数据用于逐组创建
           _planSets: pe.planSets,
         } as any);
       }
+    }
+
+    if (allExercises.length === 0) {
+      return NextResponse.json({ error: "该训练日没有动作" }, { status: 400 });
     }
   } else if (exercises) {
     // 自由训练
