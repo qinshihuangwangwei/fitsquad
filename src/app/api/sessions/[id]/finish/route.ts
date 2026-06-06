@@ -122,8 +122,8 @@ async function checkStreakAchievements(userId: string) {
   for (const { days, type } of streakAchievements) {
     if (streak >= days) {
       await prisma.userAchievement.upsert({
-        where: { userId_achievement: { userId, achievement: type } },
-        create: { userId, achievement: type },
+        where: { userId_achievement: { userId, achievement: type as any } },
+        create: { userId, achievement: type as any },
         update: {},
       });
     }
