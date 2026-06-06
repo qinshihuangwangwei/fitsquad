@@ -40,7 +40,7 @@ export default async function ProfilePage() {
       avatar: session.user.image || null,
       bio: null,
       bodyWeight: null,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     };
   }
 
