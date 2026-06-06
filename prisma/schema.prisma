@@ -1,0 +1,294 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── 用户 ───
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  avatar       String?
+  bio          String?
+  bodyWeight   Float?   // 用户体重 (KG)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedTeams    Team[]
+  memberships   TeamMember[]
+  plans         Plan[]
+  sessions      WorkoutSession[]
+  records       PersonalRecord[]
+  notifications Notification[]
+  achievements  UserAchievement[]
+
+  @@map("users")
+}
+
+// ─── 团队 ───
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  avatar      String?
+  captainId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  captain   User         @relation(fields: [captainId], references: [id], onDelete: Cascade)
+  members   TeamMember[]
+  plans     Plan[]
+  sessions  WorkoutSession[]
+
+  @@index([captainId])
+  @@map("teams")
+}
+
+// ─── 团队成员 ───
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  role     MemberRole   @default(MEMBER)
+  status   InviteStatus @default(PENDING)
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+// ─── 动作库 ───
+model Exercise {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    ExerciseCategory
+  muscleGroup String   // 例如 "胸部"、"背部"、"腿部"
+  description String?
+  isPreset    Boolean  @default(true)
+
+  planExercises PlanExercise[]
+  workoutSets   WorkoutSet[]
+  records       PersonalRecord[]
+
+  @@index([category])
+  @@index([muscleGroup])
+  @@map("exercises")
+}
+
+// ─── 训练计划 ───
+model Plan {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isTemplate  Boolean  @default(false)
+  createdById String
+  teamId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User       @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  team      Team?      @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  days      PlanDay[]
+  sessions  WorkoutSession[]
+
+  @@index([createdById])
+  @@index([teamId])
+  @@map("plans")
+}
+
+// ─── 计划训练日 ───
+model PlanDay {
+  id        String @id @default(cuid())
+  planId    String
+  dayName   String
+  sortOrder Int
+
+  plan      Plan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exercises PlanExercise[]
+
+  @@index([planId])
+  @@map("plan_days")
+}
+
+// ─── 计划中的动作 ───
+model PlanExercise {
+  id         String @id @default(cuid())
+  planDayId  String
+  exerciseId String
+  sets       Int    @default(3)
+  reps       Int    @default(10)   // 默认次数（若无 PlanSet 则用此值）
+  weight     Float  @default(0)   // 默认重量 KG（若无 PlanSet 则用此值）
+  restTime   Int    @default(60)  // 组间休息秒数
+  notes      String?
+  sortOrder  Int    @default(0)
+
+  planDay  PlanDay  @relation(fields: [planDayId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+  planSets PlanSet[]
+  setsDone WorkoutSet[]
+
+  @@index([planDayId])
+  @@map("plan_exercises")
+}
+
+// ─── 计划中的每组目标（支持逐组不同重量/次数）───
+model PlanSet {
+  id             String @id @default(cuid())
+  planExerciseId String
+  setNumber      Int
+  targetReps     Int    @default(10)
+  targetWeight   Float  @default(20) // KG
+
+  planExercise PlanExercise @relation(fields: [planExerciseId], references: [id], onDelete: Cascade)
+  workoutSets  WorkoutSet[]
+
+  @@index([planExerciseId])
+  @@map("plan_sets")
+}
+
+// ─── 训练会话 ───
+model WorkoutSession {
+  id        String    @id @default(cuid())
+  userId    String
+  planId    String?
+  teamId    String?
+  status    SessionStatus   @default(ACTIVE)
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan?         @relation(fields: [planId], references: [id], onDelete: SetNull)
+  team Team?         @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  sets WorkoutSet[]
+
+  @@index([userId])
+  @@index([teamId])
+  @@index([status])
+  @@map("workout_sessions")
+}
+
+// ─── 训练组 ───
+model WorkoutSet {
+  id              String   @id @default(cuid())
+  sessionId       String
+  planExerciseId  String?
+  planSetId       String?
+  exerciseId      String
+  setNumber       Int
+  reps            Int
+  weight          Float    @default(0) // KG
+  completed       Boolean  @default(false)
+  completedAt     DateTime?
+  notes           String?
+
+  session      WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  planExercise PlanExercise?  @relation(fields: [planExerciseId], references: [id], onDelete: SetNull)
+  planSet      PlanSet?       @relation(fields: [planSetId], references: [id], onDelete: SetNull)
+  exercise     Exercise       @relation(fields: [exerciseId], references: [id])
+
+  @@index([sessionId])
+  @@index([exerciseId])
+  @@index([completedAt])
+  @@map("workout_sets")
+}
+
+// ─── 个人纪录 ───
+model PersonalRecord {
+  id         String   @id @default(cuid())
+  userId     String
+  exerciseId String
+  weight     Float    @default(0) // KG
+  reps       Int      @default(0) // 最大次数
+  achievedAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@unique([userId, exerciseId])
+  @@index([exerciseId])
+  @@map("personal_records")
+}
+
+// ─── 通知 ───
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  relatedId String?  // 关联实体 ID（如团队 ID）
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+// ─── 用户成就 ───
+model UserAchievement {
+  id           String   @id @default(cuid())
+  userId       String
+  achievement  AchievementType
+  unlockedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievement])
+  @@map("user_achievements")
+}
+
+enum MemberRole {
+  CAPTAIN
+  MEMBER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum ExerciseCategory {
+  STRENGTH
+  CARDIO
+  FLEXIBILITY
+  BODYWEIGHT
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum NotificationType {
+  TEAM_INVITE
+  TEAM_JOINED
+  RECORD_BROKEN
+  WORKOUT_COMPLETED
+  ACHIEVEMENT
+  SYSTEM
+}
+
+enum AchievementType {
+  STREAK_3
+  STREAK_7
+  STREAK_30
+  VOLUME_1000
+  VOLUME_5000
+  VOLUME_10000
+  FIRST_RECORD
+  TEAM_PLAYER
+  PLAN_CREATOR
+}
