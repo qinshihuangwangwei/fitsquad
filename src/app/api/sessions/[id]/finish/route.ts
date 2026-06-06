@@ -59,10 +59,10 @@ export async function POST(
         where: {
           userId_achievement: {
             userId: session.user.id,
-            achievement: type,
+            achievement: type as any,
           },
         },
-        create: { userId: session.user.id, achievement: type },
+        create: { userId: session.user.id, achievement: type as any },
         update: {},
       });
     }
