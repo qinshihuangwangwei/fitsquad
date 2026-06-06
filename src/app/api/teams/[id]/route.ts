@@ -40,7 +40,7 @@ export async function GET(
   }
 
   // 检查用户是否为成员
-  const isMember = team.members.some((m) => m.userId === session.user.id);
+  const isMember = team.members.some((m) => m.userId === session.user!.id);
   if (!isMember) {
     return NextResponse.json({ error: "你不是该团队的成员" }, { status: 403 });
   }
