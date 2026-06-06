@@ -9,7 +9,10 @@ export default async function ProfilePage() {
 
   const userId = session.user.id;
 
-  let user;
+  let user: {
+    id: string; name: string; email: string; avatar: string | null;
+    bio: string | null; bodyWeight: number | null; createdAt: string;
+  } | null = null;
   try {
     user = await prisma.user.findUnique({
       where: { id: userId },
@@ -33,7 +36,7 @@ export default async function ProfilePage() {
     user = {
       id: userId,
       name: session.user.name || "用户",
-      email: session.user.email || "",
+      email: (session.user as any).email || "",
       avatar: session.user.image || null,
       bio: null,
       bodyWeight: null,
