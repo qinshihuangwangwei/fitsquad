@@ -1,7 +1,12 @@
-export type {
+import type {
   User, Team, TeamMember, Exercise, Plan, PlanDay, PlanExercise,
   WorkoutSession, WorkoutSet, PersonalRecord, Notification, UserAchievement
 } from "@prisma/client";
+
+export type {
+  User, Team, TeamMember, Exercise, Plan, PlanDay, PlanExercise,
+  WorkoutSession, WorkoutSet, PersonalRecord, Notification, UserAchievement
+};
 
 export {
   MemberRole, InviteStatus, ExerciseCategory, SessionStatus,
