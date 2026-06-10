@@ -1,17 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
-// 懒加载 bcrypt 和 prisma，避免 Serverless 冷启动时加载失败
-async function getBcrypt() {
-  const bcrypt = await import("bcryptjs");
-  return bcrypt.default || bcrypt;
-}
-
-async function getPrisma() {
-  const { prisma } = await import("@/lib/prisma");
-  return prisma;
-}
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Credentials({
@@ -21,64 +10,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "密码", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("请输入邮箱和密码");
-        }
-
         const email = (credentials.email as string).toLowerCase().trim();
         const password = credentials.password as string;
 
-        const prisma = await getPrisma();
-        const user = await prisma.user.findUnique({
-          where: { email },
-        });
+        const { PrismaClient } = await import("@prisma/client");
+        const bcrypt = await import("bcryptjs").then((m: any) => m.default || m);
+        const prisma = new PrismaClient();
 
-        if (!user) {
-          throw new Error("邮箱或密码错误");
+        try {
+          const user = await prisma.user.findUnique({ where: { email } });
+          if (!user) throw new Error("邮箱或密码错误");
+
+          const valid = await bcrypt.compare(password, user.passwordHash);
+          if (!valid) throw new Error("邮箱或密码错误");
+
+          return { id: user.id, email: user.email, name: user.name };
+        } finally {
+          await prisma.$disconnect();
         }
-
-        const bcrypt = await getBcrypt();
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) {
-          throw new Error("邮箱或密码错误");
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
       },
     }),
   ],
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
-  },
+  pages: { signIn: "/login" },
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   callbacks: {
-    async jwt({ token, user, trigger }) {
-      if (user) {
-        token.id = user.id;
-      }
-      if (trigger === "update" || !token.picture) {
-        try {
-          const prisma = await getPrisma();
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: { avatar: true },
-          });
-          if (dbUser?.avatar) token.picture = dbUser.avatar;
-        } catch { /* 静默 */ }
-      }
+    async jwt({ token, user }) {
+      if (user) { token.id = user.id; token.email = user.email; token.name = user.name; }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.image = token.picture as string | null;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
       }
       return session;
     },
