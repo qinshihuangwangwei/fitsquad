@@ -27,23 +27,30 @@ export function useTrainingSession(initialSession?: SessionWithSets | null) {
   const nextSet = useCallback(() => {
     setState((prev) => {
       if (!prev.session) return prev;
-      const currentExercise = prev.session.sets.filter(
-        (s) => s.exerciseId === prev.session?.sets[prev.currentExerciseIndex]?.exerciseId
+      const currentExerciseId = prev.session.sets[prev.currentExerciseIndex]?.exerciseId;
+      if (!currentExerciseId) return prev;
+      
+      const currentExerciseSets = prev.session.sets.filter(
+        (s) => s.exerciseId === currentExerciseId
       );
-      const totalSets = currentExercise.length;
+      const totalSets = currentExerciseSets.length;
 
       if (prev.currentSetNumber < totalSets) {
         return { ...prev, currentSetNumber: prev.currentSetNumber + 1 };
       }
-      // 移动到下一个动作
-      if (prev.currentExerciseIndex < prev.session.sets.length - 1) {
+      
+      const nextExerciseIndex = prev.session.sets.findIndex(
+        (s, idx) => idx > prev.currentExerciseIndex && s.exerciseId !== currentExerciseId
+      );
+
+      if (nextExerciseIndex !== -1) {
         return {
           ...prev,
-          currentExerciseIndex: prev.currentExerciseIndex + 1,
+          currentExerciseIndex: nextExerciseIndex,
           currentSetNumber: 1,
         };
       }
-      // 训练完成
+      
       return prev;
     });
   }, []);
@@ -59,6 +66,7 @@ export function useTrainingSession(initialSession?: SessionWithSets | null) {
         return { ...prev, restTimeLeft: prev.restTimeLeft - 1 };
       });
     }, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   return {

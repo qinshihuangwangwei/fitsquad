@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { SetCounter } from "@/components/training/SetCounter";
 import { FinishTrainingButton } from "@/components/training/FinishTrainingButton";
 import { useTeamFeed } from "@/hooks/useRealtime";
-import { ArrowLeft, Dumbbell, Flag } from "lucide-react";
+import { ArrowLeft, Dumbbell, Flag, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +43,6 @@ export function TrainingSessionClient({
 }: TrainingSessionClientProps) {
   const [exercises, setExercises] = useState(initialExercises);
   const [currentExIndex, setCurrentExIndex] = useState(() => {
-    // 找到第一个未完成的动作
     const idx = initialExercises.findIndex(
       (ex) => ex.completedSets < ex.sets
     );
@@ -59,7 +58,6 @@ export function TrainingSessionClient({
   const [feedMessages, setFeedMessages] = useState<string[]>([]);
   const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 实时订阅团队动态
   useTeamFeed(undefined, (data: any) => {
     setFeedMessages((prev) => [
       `队友完成了 ${data?.exercise?.name || "一组训练"}`,
@@ -70,20 +68,25 @@ export function TrainingSessionClient({
   const currentEx = exercises[currentExIndex];
   if (!currentEx) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <Flag className="mx-auto h-12 w-12 text-brand-500" />
-        <h1 className="mt-4 text-2xl font-bold text-surface-900">
-          训练完成！
-        </h1>
-        <p className="mt-2 text-surface-500">
-          干得漂亮！所有动作都已完成。
-        </p>
-        <Link
-          href="/dashboard"
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-sm font-medium text-white"
-        >
-          返回主页
-        </Link>
+      <div className="mx-auto max-w-lg px-4 py-8">
+        <div className="rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-card">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 mx-auto">
+            <Flag className="h-10 w-10 text-green-500" />
+          </div>
+          <h1 className="mt-6 text-2xl font-bold text-surface-900">
+            训练完成！
+          </h1>
+          <p className="mt-2 text-surface-500">
+            干得漂亮！所有动作都已完成。
+          </p>
+          <Link
+            href="/dashboard"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 px-6 py-3.5 text-base font-semibold text-white shadow-button hover:shadow-buttonHover transition-all"
+          >
+            返回主页
+            <ChevronRight className="h-5 w-5" />
+          </Link>
+        </div>
       </div>
     );
   }
@@ -104,18 +107,17 @@ export function TrainingSessionClient({
         }),
       });
     } catch {
-      return; // 网络错误，静默处理
+      return;
     }
 
     let result: { data?: { sessionCompleted?: boolean } };
     try {
       result = await res.json();
     } catch {
-      return; // 非 JSON 响应（如 proxy 重定向），静默处理
+      return;
     }
 
     if (res.ok) {
-      // 乐观更新本地状态
       setExercises((prev) =>
         prev.map((ex, i) => {
           if (i !== currentExIndex) return ex;
@@ -131,7 +133,6 @@ export function TrainingSessionClient({
         })
       );
 
-      // 启动休息计时器
       setIsResting(true);
       setRestTimeLeft(currentEx.restTime);
       restIntervalRef.current = setInterval(() => {
@@ -170,7 +171,6 @@ export function TrainingSessionClient({
     advanceToNextSet();
   };
 
-  // 总进度
   const totalSets = exercises.reduce((s, ex) => s + ex.sets, 0);
   const completedTotalSets = exercises.reduce(
     (s, ex) => s + ex.completedSets,
@@ -181,38 +181,36 @@ export function TrainingSessionClient({
 
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
-      {/* 顶部导航 */}
       <div className="flex items-center justify-between">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1 text-sm text-surface-500 hover:text-surface-700"
+          className="inline-flex items-center gap-2 text-sm font-medium text-surface-600 hover:text-surface-800 transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" /> 退出
+          <ArrowLeft className="h-5 w-5" />
+          <span className="hidden sm:inline">退出</span>
         </Link>
-        <div className="text-xs text-surface-400">
-          {planName && <span>{planName}</span>}
-          {teamName && <span className="ml-2">🏠 {teamName}</span>}
+        <div className="flex items-center gap-2 text-xs text-surface-400">
+          {planName && <span className="bg-surface-100 rounded-full px-2 py-1">{planName}</span>}
+          {teamName && <span className="bg-brand-50 rounded-full px-2 py-1 text-brand-700">🏠 {teamName}</span>}
         </div>
       </div>
 
-      {/* 总进度条 */}
       <div className="mt-4">
-        <div className="flex items-center justify-between text-xs text-surface-500 mb-1">
+        <div className="flex items-center justify-between text-xs text-surface-500 mb-2">
           <span>总进度</span>
           <span>
             {completedTotalSets}/{totalSets} 组
           </span>
         </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-100">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-surface-100">
           <div
-            className="h-full rounded-full bg-brand-500 transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all duration-500"
             style={{ width: `${overallProgress}%` }}
           />
         </div>
       </div>
 
-      {/* 动作列表横向滚动 */}
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {exercises.map((ex, i) => (
           <button
             key={ex.exerciseId}
@@ -222,9 +220,9 @@ export function TrainingSessionClient({
               setIsResting(false);
             }}
             className={cn(
-              "flex-shrink-0 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+              "flex-shrink-0 rounded-xl px-4 py-2.5 text-xs font-medium transition-all duration-200",
               i === currentExIndex
-                ? "bg-brand-600 text-white"
+                ? "bg-brand-600 text-white shadow-md"
                 : ex.completedSets === ex.sets
                 ? "bg-green-100 text-green-700"
                 : ex.completedSets > 0
@@ -232,13 +230,15 @@ export function TrainingSessionClient({
                 : "bg-surface-100 text-surface-500"
             )}
           >
-            {ex.exerciseName} ({ex.completedSets}/{ex.sets})
+            <div className="flex items-center gap-2">
+              <span className="truncate max-w-[80px]">{ex.exerciseName}</span>
+              <span className="opacity-75">({ex.completedSets}/{ex.sets})</span>
+            </div>
           </button>
         ))}
       </div>
 
-      {/* 核心区域 — SetCounter */}
-      <div className="mt-8">
+      <div className="mt-6">
         <SetCounter
           exerciseName={currentEx.exerciseName}
           currentSet={currentSetNum}
@@ -259,16 +259,14 @@ export function TrainingSessionClient({
         />
       </div>
 
-      {/* 结束训练按钮 */}
       <FinishTrainingButton
         sessionId={sessionId}
         allDone={completedTotalSets === totalSets}
         disabled={isResting}
       />
 
-      {/* 当前动作的已完成组 */}
-      <div className="mt-8">
-        <h3 className="text-sm font-medium text-surface-700 mb-3">
+      <div className="mt-6">
+        <h3 className="text-sm font-semibold text-surface-700 mb-3">
           已完成组记录
         </h3>
         <div className="flex gap-2 flex-wrap">
@@ -276,28 +274,35 @@ export function TrainingSessionClient({
             <div
               key={s.setNumber}
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg text-xs font-medium",
+                "flex h-12 w-12 items-center justify-center rounded-xl text-sm font-semibold transition-all",
                 s.completed
                   ? "bg-green-100 text-green-700"
                   : s.setNumber === currentSetNum
-                  ? "bg-brand-100 text-brand-700 ring-2 ring-brand-300"
+                  ? "bg-brand-100 text-brand-700 ring-2 ring-brand-400"
                   : "bg-surface-100 text-surface-400"
               )}
             >
-              {s.setNumber}
+              {s.completed ? (
+                <span className="text-center">
+                  <span className="block text-xs opacity-70">{s.weight}KG</span>
+                  <span>{s.reps}次</span>
+                </span>
+              ) : (
+                s.setNumber
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* 团队动态 */}
       {feedMessages.length > 0 && (
-        <div className="mt-6 rounded-xl border border-surface-200 bg-surface-50 p-4">
-          <h3 className="text-xs font-medium text-surface-500 mb-2">
+        <div className="mt-6 rounded-xl border border-surface-200 bg-gradient-to-br from-surface-50 to-white p-4">
+          <h3 className="text-xs font-semibold text-surface-500 mb-2 flex items-center gap-1">
+            <Dumbbell className="h-3 w-3" />
             队友动态
           </h3>
           {feedMessages.map((msg, i) => (
-            <p key={i} className="text-xs text-surface-600">
+            <p key={i} className="text-sm text-surface-600 py-1.5 border-b border-surface-100 last:border-0">
               {msg}
             </p>
           ))}

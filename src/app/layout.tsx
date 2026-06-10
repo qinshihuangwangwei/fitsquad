@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { SessionProvider } from "@/providers/SessionProvider";
 import { Toaster } from "sonner";
 import { Navbar } from "@/components/layout/Navbar";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -36,16 +37,18 @@ export default function RootLayout({
         <meta name="theme-color" content="#22c55e" />
       </head>
       <body className="min-h-screen bg-surface-50">
-        <SessionProvider>
-          <Navbar />
-          <main className="pb-16">{children}</main>
-          <Toaster position="top-center" richColors />
-        </SessionProvider>
+        <ErrorBoundary>
+          <SessionProvider>
+            <Navbar />
+            <main className="pb-16">{children}</main>
+            <Toaster position="top-center" richColors />
+          </SessionProvider>
+        </ErrorBoundary>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js');
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
               }
             `,
           }}

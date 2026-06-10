@@ -43,24 +43,24 @@ export function useTeamFeed(
   teamId: string | undefined,
   onNewSet: (data: unknown) => void
 ) {
-  const [lastSeen, setLastSeen] = useState<string | null>(null);
+  const lastSeenRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!teamId) return;
 
     const poll = async () => {
       try {
-        const url = lastSeen
-          ? `/api/feed?teamId=${teamId}&since=${lastSeen}`
+        const url = lastSeenRef.current
+          ? `/api/feed?teamId=${teamId}&since=${lastSeenRef.current}`
           : `/api/feed?teamId=${teamId}&limit=5`;
         const res = await fetch(url);
         const json = await res.json();
         const items = json.data || [];
 
         for (const item of items) {
-          if (item.type === "workout_completed" && item.id !== lastSeen) {
+          if (item.type === "workout_completed" && item.id !== lastSeenRef.current) {
             onNewSet(item);
-            setLastSeen(item.id);
+            lastSeenRef.current = item.id;
           }
         }
       } catch { /* 静默处理 */ }
@@ -69,7 +69,7 @@ export function useTeamFeed(
     poll();
     const id = setInterval(poll, 3000);
     return () => clearInterval(id);
-  }, [teamId, lastSeen, onNewSet]);
+  }, [teamId, onNewSet]);
 }
 
 // ─── 订阅用户通知（轮询版） ───
