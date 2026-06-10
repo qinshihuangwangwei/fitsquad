@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
 
@@ -32,6 +31,7 @@ export async function POST(req: Request) {
     }
 
     // 哈希密码
+    const bcrypt = await import("bcryptjs").then((m) => m.default || m);
     const passwordHash = await bcrypt.hash(password, 12);
 
     // 创建用户

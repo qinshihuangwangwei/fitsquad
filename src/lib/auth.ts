@@ -1,8 +1,12 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 
-// 懒加载 prisma，避免模块初始化时连接数据库失败导致整个应用崩溃
+// 懒加载 bcrypt 和 prisma，避免 Serverless 冷启动时加载失败
+async function getBcrypt() {
+  const bcrypt = await import("bcryptjs");
+  return bcrypt.default || bcrypt;
+}
+
 async function getPrisma() {
   const { prisma } = await import("@/lib/prisma");
   return prisma;
@@ -33,6 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("邮箱或密码错误");
         }
 
+        const bcrypt = await getBcrypt();
         const isValid = await bcrypt.compare(password, user.passwordHash);
         if (!isValid) {
           throw new Error("邮箱或密码错误");
