@@ -1,7 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // 显式设置 secret — 兼容 Vercel 上未配 AUTH_SECRET 的情况
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   providers: [
     Credentials({
       name: "credentials",
@@ -10,23 +14,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "密码", type: "password" },
       },
       async authorize(credentials) {
-        const email = (credentials.email as string).toLowerCase().trim();
-        const password = credentials.password as string;
-
-        const { PrismaClient } = await import("@prisma/client");
-        const bcrypt = await import("bcryptjs").then((m: any) => m.default || m);
-        const prisma = new PrismaClient();
-
         try {
+          const email = (credentials.email as string).toLowerCase().trim();
+          const password = credentials.password as string;
+
           const user = await prisma.user.findUnique({ where: { email } });
-          if (!user) throw new Error("邮箱或密码错误");
+          if (!user) return null;
 
           const valid = await bcrypt.compare(password, user.passwordHash);
-          if (!valid) throw new Error("邮箱或密码错误");
+          if (!valid) return null;
 
           return { id: user.id, email: user.email, name: user.name };
-        } finally {
-          await prisma.$disconnect();
+        } catch (error) {
+          console.error("Auth error:", error);
+          return null;
         }
       },
     }),
@@ -35,7 +36,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) { token.id = user.id; token.email = user.email; token.name = user.name; }
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+      }
       return token;
     },
     async session({ session, token }) {
